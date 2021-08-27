@@ -1,0 +1,58 @@
+$all_orders = wc_get_orders(
+      array(
+         'limit' => -1,
+         'status' => array_map( 'wc_get_order_status_name', wc_get_is_paid_statuses() ),
+         'date_after' => date( 'Y-m-d', strtotime( '-6 month' ) ),
+         'return' => 'ids',
+      )
+   );
+	
+$all_parents = wc_get_products(array(
+              'category' => array('materials-kits'),
+	          'limit' => -1,
+			  'orderby' => 'name',
+	          'order' => 'asc',
+	          'status' => 'publish'
+));
+	
+	foreach ($all_parents as $parent) {
+		$variation_ids = $parent->get_children();
+		
+		foreach ($variation_ids as $variation_id){
+			$variation = wc_get_product($variation_id);
+			$variation_name = $variation->get_name();
+			$variation_stock = $variation->get_stock_quantity();
+			$base_rop = 1;
+			if ($variation_stock <= $base_rop) {
+				$rop_check = true;
+				$rop = '<span style="color:red;">Need to Make More</span>';			
+			}
+			else {
+				$rop_check = false;
+				$rop = '<span style="color:green;">Good</span>';
+			}
+		if ($rop_check == true) {	
+	
+     
+   // Loop through orders and get count sales
+   $count = 0;
+   foreach ( $all_orders as $all_order ) {
+      $order = wc_get_order( $all_order );
+      $items = $order->get_items();
+      foreach ( $items as $item ) {
+         $ordered_name = $item->get_name();
+         if ( $ordered_name == $variation_name ) {
+            $count = $count + absint( $item['qty'] ); 
+         }
+      }
+   }
+			$avg_sales = $count / 6;
+			$holdcost = 1;
+			$cost = 20;
+			$eoq = sqrt((2*$avg_sales*$cost)/$holdcost);
+	?>
+	  <p><?php echo $variation_name ?> | Stock: <?php echo $variation_stock; ?> | Rop: <?php echo $rop; ?> | Make <span style="color: #1e5799;"><?php echo round($eoq); ?></span> More</p>
+<?php		
+		}
+		}
+	}
