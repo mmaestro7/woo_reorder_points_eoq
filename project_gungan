@@ -8,7 +8,19 @@ $all_orders = wc_get_orders(
          'return' => 'ids',
       )
    );
-	
+
+// Loop through orders and count sales
+   
+   foreach ( $all_orders as $all_order ) {
+      $order = wc_get_order( $all_order );
+      $items = $order->get_items();
+      foreach ( $items as $item ) {
+         $item_id = $item->get_variation_id();
+		  update_post_meta($item_id, 'count', $item['qty']);
+         
+      }
+   }
+		
 $all_parents = wc_get_products(array(
               'category' => array('materials-kits'),
 	          'limit' => -1,
@@ -22,6 +34,7 @@ $all_parents = wc_get_products(array(
 		
 		foreach ($variation_ids as $variation_id){
 			$variation = wc_get_product($variation_id);
+			$var_id = $variation->get_id();
 			$variation_name = $variation->get_name();
 			$variation_stock = $variation->get_stock_quantity();
 			$base_rop = 1;
@@ -33,28 +46,22 @@ $all_parents = wc_get_products(array(
 				$rop_check = false;
 				$rop = '<span style="color:green;">Good</span>';
 			}
-		if ($rop_check == true) {	
+		if ($rop_check) {	
 	
      
-   // Loop through orders and get count sales
-   $count = 0;
-   foreach ( $all_orders as $all_order ) {
-      $order = wc_get_order( $all_order );
-      $items = $order->get_items();
-      foreach ( $items as $item ) {
-         $ordered_name = $item->get_name();
-         if ( $ordered_name == $variation_name ) {
-            $count = $count + absint( $item['qty'] ); 
-         }
-      }
-   }
+			if (! empty(get_post_meta($variation_id, 'cost', true))) {
+			$cost = get_post_meta($variation_id, 'cost', true);
+			}
+			else { $cost = 20; }
+			$count = array_sum(get_post_meta($variation_id, 'count'));
 			$avg_sales = $count / 6;
 			$holdcost = 1;
-			$cost = 20;
 			$eoq = sqrt((2*$avg_sales*$cost)/$holdcost);
 	?>
 	  <p><?php echo $variation_name ?> | Stock: <?php echo $variation_stock; ?> | Rop: <?php echo $rop; ?> | Make <span style="color: #1e5799;"><?php echo round($eoq); ?></span> More</p>
+	  <p>Debuggers: Cost <?php echo $cost; ?> || Count: <?php echo $count; ?></p>
 <?php		
 		}
+			
 		}
 	}
